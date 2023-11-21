@@ -7,7 +7,7 @@
 [![codecov](https://codecov.io/gh/SafarbatiSami/napari-Biom3d/branch/main/graph/badge.svg)](https://codecov.io/gh/SafarbatiSami/napari-Biom3d)
 [![napari hub](https://img.shields.io/endpoint?url=https://api.napari-hub.org/shields/napari-Biom3d)](https://napari-hub.org/plugins/napari-Biom3d)
 
-A simple plugin to use FooBar segmentation within napari
+A simple plugin to use Biom3d  within napari
 
 ----------------------------------
 

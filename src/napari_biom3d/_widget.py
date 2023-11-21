@@ -39,6 +39,46 @@ if TYPE_CHECKING:
     import napari
 
 
+from pathlib import Path
+from magicgui import magicgui
+import napari
+from napari import Viewer
+from napari.layers import Image
+import numpy as np
+"""
+@magicgui( directory={"mode": "d", "label": "Choose a directory"})
+def preprocess(viewer=Viewer,directory=Path("~")):
+  
+    print("The directory name is:", directory)
+    return directory
+"""
+
+@magicgui(call_button='Add Image')
+def preprocess(ny: int=64, nx: int=64) -> Image:
+  return Image(np.random.rand(ny, nx), name='My Image')
+
+viewer = napari.Viewer()
+viewer.window.add_dock_widget(preprocess, area='right')
+preprocess()  # "call the widget" to call the function.
+             
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+"""
+
+
 # Uses the `autogenerate: true` flag in the plugin manifest
 # to indicate it should be wrapped as a magicgui to autogenerate
 # a widget.
@@ -126,3 +166,5 @@ class ExampleQWidget(QWidget):
 
     def _on_click(self):
         print("napari has", len(self.viewer.layers), "layers")
+
+"""

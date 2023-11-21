@@ -6,22 +6,10 @@ visibility: public
 categories: ["Annotation", "Segmentation", "Acquisition"]
 contributions:
   commands:
-    - id: napari-Biom3d.make_container_widget
-      python_name: napari_biom3d:ImageThreshold
-      title: Make threshold Container widget
-    - id: napari-Biom3d.make_magic_widget
-      python_name: napari_biom3d:threshold_magic_widget
-      title: Make threshold magic widget
-    - id: napari-Biom3d.make_function_widget
-      python_name: napari_biom3d:threshold_autogenerate_widget
-      title: Make threshold function widget
+    - id: napari-Biom3d._widget.preprocess
+      python_name: napari_biom3d:preprocess
+      title: preprocess
+
   widgets:
-    - command: napari-Biom3d.make_container_widget
-      display_name: Container Threshold
-    - command: napari-Biom3d.make_magic_widget
-      display_name: Magic Threshold
-    - command: napari-Biom3d.make_function_widget
-      autogenerate: true
-      display_name: Autogenerate Threshold
-    - command: napari-Biom3d.make_qwidget
-      display_name: Example QWidget
+    - command: napari-Biom3d._widget.preprocess
+      display_name: Preprocess
