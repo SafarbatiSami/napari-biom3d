@@ -53,6 +53,7 @@ try:
     from biom3d.utils import adaptive_load_config # might remove this
     from biom3d.utils import save_python_config # might remove this
     from biom3d.train import train
+    from biom3d.pred import pred
     
 except:
     print("couldn't import Biom3d's libs")
@@ -330,13 +331,21 @@ def autoconfigure_callback(config_path):
     
 # ------------------------------------------ Predicition -----------------------------------------
 
-magicgui(call_button="Predict",
-            directory1={"mode": "d", "label": "Select the folder containing the images to predict :"},
-            directory2={"mode": "d", "label": "Select the folder containing your model :"})    
+@magicgui(call_button="Predict",
+          directory1={"mode": "d", "label": "Select the folder containing the images to predict :"},
+          directory2={"mode": "d", "label": "Select the folder containing your model :"},
+          directory3={"mode": "d", "label": "Select the output directory for predictions :"})    
 def predict(directory1=pathlib.Path,
-            directory2=pathlib.Path):
-    return 0
-     
+            directory2=pathlib.Path,
+            directory3=pathlib.Path):
+    
+    # Run prediction
+    p = pred(
+        dir_in=str(directory1),
+        log=str(directory2),
+        dir_out=str(directory3))
+    return directory1
+    
     
     
 
@@ -358,8 +367,8 @@ class Train(QWidget):
     
         #self.layout().addWidget(training.native)
         #viewer = napari.Viewer()
-        self.layout().add_dock_widget(autoconfigure)
-        self.layout().add_dock_widget(training)
+        viewer.window.add_dock_widget(autoconfigure)
+        viewer.window.add_dock_widget(training)
         
 # /home/stagiaire-pt/Willy-wanka/Napari-images/to_pred
 # /home/stagiaire-pt/Willy-wanka/Napari-images/masks
@@ -372,8 +381,8 @@ class Prediction(QWidget):
         self.viewer = viewer
         
         self.setLayout(QHBoxLayout())
-        self.layout().addWidget(autoconfigure.native)
-        #self.layout().addWidget(btn)
-
+        
+        viewer.window.add_dock_widget(predict)
+     
     
     
