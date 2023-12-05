@@ -202,24 +202,24 @@ def nested_dict_change_value(dic, key, value):
             save[key] = value
     return dic
 # END OF UTILS
+
+
+
+
+
+
+# -------------------------------------- Auto configuration --------------------------------------------
+
+
 @magicgui(call_button="Auto-configure",
             directory1={"mode": "d", "label": "Select the folder containing the images :"},
             directory2={"mode": "d", "label": "Select the folder containing the masks :"})
 def autoconfigure(directory1: pathlib.Path,
                     directory2: pathlib.Path,
-                    Builder_name="Text goes here",
-                    Epochs=100,
+                    Builder_name="Name for your Builder",
+                    
                     Number_classes=1,
-                    Batch_size=2,
-                    Patch_size_x=128,
-                    Patch_size_y=128,
-                    Patch_size_z=128,
-                    Augmentation_Patch_size_x=160,
-                    Augmentation_Patch_size_y=160,
-                    Augmentation_Patch_size_z=160,
-                    Number_of_pool_x=5,
-                    Number_of_pool_y=5,
-                    Number_of_pool_z=5,
+                    
                     ):
     
     local_config_dir = "configs"
@@ -235,15 +235,32 @@ def autoconfigure(directory1: pathlib.Path,
         base_config=None,
             
         )
-        # Read the config file
+    return config_path
+      
+        
+# ---------------------------------------- Training --------------------------------------------
+  
+@magicgui(call_button="Train")        
+def training(config_path=None,
+             Epochs=10,
+             Batch_size=666,
+            Patch_size_x=18,
+            Patch_size_y=18,
+            Patch_size_z=18,
+            Augmentation_Patch_size_x=16,
+            Augmentation_Patch_size_y=16,
+            Augmentation_Patch_size_z=16,
+            Number_of_pool_x=57,
+            Number_of_pool_y=57,
+            Number_of_pool_z=5,):    
+    
+    local_config_dir = "configs"
+    # Read the config file    
     cfg = adaptive_load_config(config_path)
     
-   
-  
-    cfg.DESC = Builder_name
-
-    cfg.NUM_CLASSES = Number_classes
-    cfg = nested_dict_change_value(cfg, 'num_classes', cfg.NUM_CLASSES)
+    #cfg.DESC = Builder_name
+    #cfg.NUM_CLASSES = Number_classes
+    #cfg = nested_dict_change_value(cfg, 'num_classes', cfg.NUM_CLASSES)
     
     cfg.NB_EPOCHS = Epochs
     cfg = nested_dict_change_value(cfg, 'nb_epochs', cfg.NB_EPOCHS)
@@ -269,7 +286,7 @@ def autoconfigure(directory1: pathlib.Path,
     base_config=config_path,
     IMG_DIR=cfg.IMG_DIR,
     MSK_DIR=cfg.MSK_DIR,
-    NUM_CLASSES=Number_classes,
+    NUM_CLASSES=1,
     BATCH_SIZE=cfg.BATCH_SIZE,
     AUG_PATCH_SIZE=cfg.AUG_PATCH_SIZE,
     PATCH_SIZE=cfg.PATCH_SIZE,
@@ -280,30 +297,74 @@ def autoconfigure(directory1: pathlib.Path,
    # run the training           
     train(config=new_config_path)     
         
-    return config_path
+    return new_config_path
 
 
-class preprocess(QWidget):
+
+# ------------------------------------ Callback autoconfigure x training -------------------------------------
+
+def autoconfigure_callback(config_path):
+    # Read the configuration file
+    cfg = adaptive_load_config(config_path)
+
+    # Update the training parameters based on the configuration file
+    training.config_path.value = config_path
+    #training.Epochs.value = cfg.NB_EPOCHS
+    training.Batch_size.value = cfg['BATCH_SIZE']
+     # Extracting x, y, z values from PATCH_SIZE and assigning them
+    patch_size = cfg.get('PATCH_SIZE', [18, 18, 18])  # Default to [18, 18, 18] if not found
+    training.Patch_size_x.value = patch_size[0]
+    training.Patch_size_y.value = patch_size[1]
+    training.Patch_size_z.value = patch_size[2]
+
+    # Similarly for other parameters
+    aug_patch_size = cfg.get('AUG_PATCH_SIZE', [16, 16, 16])
+    training.Augmentation_Patch_size_x.value = aug_patch_size[0]
+    training.Augmentation_Patch_size_y.value = aug_patch_size[1]
+    training.Augmentation_Patch_size_z.value = aug_patch_size[2]
+
+    num_pools = cfg.get('NUM_POOLS', [57, 57, 5])
+    training.Number_of_pool_x.value = num_pools[0]
+    training.Number_of_pool_y.value = num_pools[1]
+    training.Number_of_pool_z.value = num_pools[2]
+    
+# ------------------------------------------ Predicition -----------------------------------------
+
+magicgui(call_button="Predict",
+            directory1={"mode": "d", "label": "Select the folder containing the images to predict :"},
+            directory2={"mode": "d", "label": "Select the folder containing your model :"})    
+def predict(directory1=pathlib.Path,
+            directory2=pathlib.Path):
+    return 0
+     
+    
+    
+
+################################# --------- WIDGETS CLASSES --------- #################################
+class Train(QWidget):
     # your QWidget.__init__ can optionally request the napari viewer instance
     # use a type annotation of 'napari.viewer.Viewer' for any parameter
     def __init__(self, viewer: "napari.viewer.Viewer"):
         super().__init__()
         self.viewer = viewer
 
+        
         self.setLayout(QHBoxLayout())
-        self.layout().addWidget(autoconfigure.native)
-        #self.layout().addWidget(btn)
+        #self.layout().addWidget(autoconfigure.native)
+        
+        # Connect the autoconfigure callback
+        autoconfigure.call_button.changed.connect(lambda: autoconfigure_callback(autoconfigure()))
 
     
-    
-
-
-    def _on_click(self):
-        print("napari has", len(self.viewer.layers), "layers")
+        #self.layout().addWidget(training.native)
+        #viewer = napari.Viewer()
+        self.layout().add_dock_widget(autoconfigure)
+        self.layout().add_dock_widget(training)
+        
 # /home/stagiaire-pt/Willy-wanka/Napari-images/to_pred
 # /home/stagiaire-pt/Willy-wanka/Napari-images/masks
 
-class prediction(QWidget):
+class Prediction(QWidget):
     # your QWidget.__init__ can optionally request the napari viewer instance
     # use a type annotation of 'napari.viewer.Viewer' for any parameter
     def __init__(self, viewer: "napari.viewer.Viewer"):

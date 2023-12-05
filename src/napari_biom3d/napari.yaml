@@ -6,15 +6,15 @@ visibility: public
 categories: ["Annotation", "Segmentation", "Acquisition"]
 contributions:
   commands:
-    - id: napari-Biom3d._widget.preprocess
-      python_name: napari_biom3d._widget:preprocess
-      title: preprocess
-    - id: napari-Biom3d._widget.prediction
-      python_name: napari_biom3d._widget:prediction
-      title: prediction
+    - id: napari-Biom3d._widget.Train
+      python_name: napari_biom3d._widget:Train
+      title: Train
+    - id: napari-Biom3d._widget.Prediction
+      python_name: napari_biom3d._widget:Prediction
+      title: Prediction
 
   widgets:
-    - command: napari-Biom3d._widget.preprocess
+    - command: napari-Biom3d._widget.Train
       display_name: Auto-configure & Train
-    - command: napari-Biom3d._widget.prediction
+    - command: napari-Biom3d._widget.Prediction
       display_name: Prediction
