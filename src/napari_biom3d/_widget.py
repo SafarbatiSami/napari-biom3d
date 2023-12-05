@@ -45,6 +45,21 @@ import napari
 from napari import Viewer
 from napari.layers import Image
 import numpy as np
+import pathlib
+"""" biom3D libs"""
+try:
+    import biom3d
+    from biom3d.preprocess import auto_config_preprocess
+    from biom3d.utils import adaptive_load_config # might remove this
+    from biom3d.utils import save_python_config # might remove this
+    from biom3d.train import train
+    
+except:
+    print("couldn't import Biom3d's libs")
+    pass
+
+
+
 """
 @magicgui( directory={"mode": "d", "label": "Choose a directory"})
 def preprocess(viewer=Viewer,directory=Path("~")):
@@ -53,19 +68,7 @@ def preprocess(viewer=Viewer,directory=Path("~")):
     return directory
 """
 
-@magicgui(call_button='Add Image')
-def preprocess(ny: int=64, nx: int=64) -> Image:
-  return Image(np.random.rand(ny, nx), name='My Image')
-
-viewer = napari.Viewer()
-viewer.window.add_dock_widget(preprocess, area='right')
-preprocess()  # "call the widget" to call the function.
-             
-
-
-
-
-
+         
 
 
 
@@ -150,21 +153,166 @@ class ImageThreshold(Container):
         else:
             self._viewer.add_labels(thresholded, name=name)
 
+"""
 
-class ExampleQWidget(QWidget):
+# SOME UTILS 
+class Dict(dict):
+    def __init__(self, *args, **kwargs): super().__init__(*args, **kwargs)
+    def __getattr__(self, name): return self[name]
+    def __setattr__(self, name, value): self[name] = value
+    def __delattr__(self, name): del self[name]
+
+def Dict_to_dict(cfg):
+    """
+    transform a Dict into a dict
+    """
+    ty = type(cfg)
+    cfg = dict(cfg)
+    for k,i in cfg.items():
+        if type(i)==ty:
+            cfg[k] = Dict_to_dict(cfg[k])
+    return cfg
+
+def nested_dict_pairs_iterator(dic):
+    ''' This function accepts a nested dictionary as argument
+        and iterate over all values of nested dictionaries
+        stolen from: https://thispointer.com/python-how-to-iterate-over-nested-dictionary-dict-of-dicts/ 
+    '''
+    # Iterate over all key-value pairs of dict argument
+    for key, value in dic.items():
+        # Check if value is of dict type
+        if isinstance(value, dict) or isinstance(value, Dict):
+            # If value is dict then iterate over all its values
+            for pair in  nested_dict_pairs_iterator(value):
+                yield [key, *pair]
+        else:
+            # If value is not dict type then yield the value
+            yield [key, value]
+
+def nested_dict_change_value(dic, key, value):
+    """
+    Change all value with a given key from a nested dictionary.
+    """
+    # Loop through all key-value pairs of a nested dictionary and change the value 
+    for pairs in nested_dict_pairs_iterator(dic):
+        if key in pairs:
+            save = dic[pairs[0]]; i=1
+            while i < len(pairs) and pairs[i]!=key:
+                save = save[pairs[i]]; i+=1
+            save[key] = value
+    return dic
+# END OF UTILS
+@magicgui(call_button="Auto-configure",
+            directory1={"mode": "d", "label": "Select the folder containing the images :"},
+            directory2={"mode": "d", "label": "Select the folder containing the masks :"})
+def autoconfigure(directory1: pathlib.Path,
+                    directory2: pathlib.Path,
+                    Builder_name="Text goes here",
+                    Epochs=100,
+                    Number_classes=1,
+                    Batch_size=2,
+                    Patch_size_x=128,
+                    Patch_size_y=128,
+                    Patch_size_z=128,
+                    Augmentation_Patch_size_x=160,
+                    Augmentation_Patch_size_y=160,
+                    Augmentation_Patch_size_z=160,
+                    Number_of_pool_x=5,
+                    Number_of_pool_y=5,
+                    Number_of_pool_z=5,
+                    ):
+    
+    local_config_dir = "configs"
+    local_logs_dir = "logs"
+    
+    config_path=auto_config_preprocess(img_dir=str(directory1),
+        msk_dir=str(directory2),
+        desc=Builder_name,
+        num_classes=Number_classes,
+        remove_bg=False, use_tif=False,
+        config_dir=local_config_dir,
+        logs_dir=local_logs_dir,
+        base_config=None,
+            
+        )
+        # Read the config file
+    cfg = adaptive_load_config(config_path)
+    
+   
+  
+    cfg.DESC = Builder_name
+
+    cfg.NUM_CLASSES = Number_classes
+    cfg = nested_dict_change_value(cfg, 'num_classes', cfg.NUM_CLASSES)
+    
+    cfg.NB_EPOCHS = Epochs
+    cfg = nested_dict_change_value(cfg, 'nb_epochs', cfg.NB_EPOCHS)
+    
+    cfg.BATCH_SIZE = Batch_size
+    cfg = nested_dict_change_value(cfg, 'batch_size', cfg.BATCH_SIZE)
+    
+    Patch_size = [int(Patch_size_x),int(Patch_size_y),int(Patch_size_z)]
+    cfg.PATCH_SIZE = Patch_size
+    cfg = nested_dict_change_value(cfg, 'patch_size', cfg.PATCH_SIZE)
+    
+    Aug_patch_size = [int(Augmentation_Patch_size_x),int(Augmentation_Patch_size_y),int(Augmentation_Patch_size_z)]
+    cfg.AUG_PATCH_SIZE = Aug_patch_size
+    cfg = nested_dict_change_value(cfg, 'aug_patch_size', cfg.AUG_PATCH_SIZE)
+
+    Number_of_pools = [int(Number_of_pool_x), int(Number_of_pool_y), int(Number_of_pool_z)]
+    cfg.NUM_POOLS = Number_of_pools
+    cfg = nested_dict_change_value(cfg, 'num_pools', cfg.NUM_POOLS)
+        
+     # save the new config file
+    new_config_path = save_python_config(
+    config_dir=local_config_dir,
+    base_config=config_path,
+    IMG_DIR=cfg.IMG_DIR,
+    MSK_DIR=cfg.MSK_DIR,
+    NUM_CLASSES=Number_classes,
+    BATCH_SIZE=cfg.BATCH_SIZE,
+    AUG_PATCH_SIZE=cfg.AUG_PATCH_SIZE,
+    PATCH_SIZE=cfg.PATCH_SIZE,
+    NUM_POOLS=cfg.NUM_POOLS,
+    NB_EPOCHS=cfg.NB_EPOCHS
+    
+    )
+   # run the training           
+    train(config=new_config_path)     
+        
+    return config_path
+
+
+class preprocess(QWidget):
     # your QWidget.__init__ can optionally request the napari viewer instance
     # use a type annotation of 'napari.viewer.Viewer' for any parameter
     def __init__(self, viewer: "napari.viewer.Viewer"):
         super().__init__()
         self.viewer = viewer
 
-        btn = QPushButton("Click me!")
-        btn.clicked.connect(self._on_click)
-
         self.setLayout(QHBoxLayout())
-        self.layout().addWidget(btn)
+        self.layout().addWidget(autoconfigure.native)
+        #self.layout().addWidget(btn)
+
+    
+    
+
 
     def _on_click(self):
         print("napari has", len(self.viewer.layers), "layers")
+# /home/stagiaire-pt/Willy-wanka/Napari-images/to_pred
+# /home/stagiaire-pt/Willy-wanka/Napari-images/masks
 
-"""
+class prediction(QWidget):
+    # your QWidget.__init__ can optionally request the napari viewer instance
+    # use a type annotation of 'napari.viewer.Viewer' for any parameter
+    def __init__(self, viewer: "napari.viewer.Viewer"):
+        super().__init__()
+        self.viewer = viewer
+        
+        self.setLayout(QHBoxLayout())
+        self.layout().addWidget(autoconfigure.native)
+        #self.layout().addWidget(btn)
+
+    
+    

@@ -7,9 +7,14 @@ categories: ["Annotation", "Segmentation", "Acquisition"]
 contributions:
   commands:
     - id: napari-Biom3d._widget.preprocess
-      python_name: napari_biom3d:preprocess
+      python_name: napari_biom3d._widget:preprocess
       title: preprocess
+    - id: napari-Biom3d._widget.prediction
+      python_name: napari_biom3d._widget:prediction
+      title: prediction
 
   widgets:
     - command: napari-Biom3d._widget.preprocess
-      display_name: Preprocess
+      display_name: Auto-configure & Train
+    - command: napari-Biom3d._widget.prediction
+      display_name: Prediction
