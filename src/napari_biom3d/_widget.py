@@ -331,24 +331,67 @@ def autoconfigure_callback(config_path):
     
 # ------------------------------------------ Predicition -----------------------------------------
 
+
+
 @magicgui(call_button="Predict",
+          omero_username={"widget_type": "LineEdit", "visible": False, "label": "Omero Username :"},
+          omero_password={"widget_type": "Password", "visible": False, "label": "Password :"},
+          omero_hostname={"widget_type": "LineEdit", "visible": False, "label": "Hostname :"},
+          omero_dataset={"widget_type": "LineEdit", "visible": False, "label": "Input Dataset ID :"},
+          omero_project_id={"widget_type": "LineEdit", "visible": False, "label": "Output Project ID :"},
+          omero_dataset_name={"widget_type": "LineEdit", "visible": False, "label": "Enter a name for your output dataset :"},
           directory1={"mode": "d", "label": "Select the folder containing the images to predict :"},
           directory2={"mode": "d", "label": "Select the folder containing your model :"},
-          directory3={"mode": "d", "label": "Select the output directory for predictions :"})    
-def predict(directory1=pathlib.Path,
-            directory2=pathlib.Path,
-            directory3=pathlib.Path):
+          directory3={"mode": "d", "label": "Select the output directory for predictions :"},
+          )    
+def predict(Use_Omero :bool,
+            directory1 : pathlib.Path,
+            directory2 : pathlib.Path,
+            directory3 : pathlib.Path,
+            omero_username: str ="",
+            omero_password : str="",
+            omero_hostname : str ="",
+            omero_dataset : int = 0,
+            omero_project_id : int = 0,
+            omero_dataset_name : str = ""):
     
+    predict.omero_username.visible = Use_Omero
+    predict.omero_password.visible = Use_Omero
+    predict.omero_hostname.visible = Use_Omero
+    predict.omero_dataset.visible = Use_Omero
+    predict.omero_project_id.visible = Use_Omero
+    predict.omero_dataset_name.visible = Use_Omero
+    predict.directory3.visible = not Use_Omero
     # Run prediction
-    p = pred(
-        dir_in=str(directory1),
+    p = pred(dir_in=str(directory1),
         log=str(directory2),
         dir_out=str(directory3))
-    return directory1
+    # Or use OMERO
+   
+      
+    """
+    p=biom3d.omero_pred.run(
+                    obj=obj,
+                    target="/to_pred",
+                    log=str(directory2), 
+                    dir_out=str(directory3),
+                    user=self.omero_connection.username.get(),
+                    pwd=self.omero_connection.password.get(),
+                    host=self.omero_connection.hostname.get()
+                )  
+    """
+        
+    return p
+def on_use_omero_change(widget, value,omero_username,omero_password,omero_hostname, omero_dataset,omero_project_id, omero_dataset_name ,directory1):
+    directory1.visible = not value
+ 
+    omero_username.visible = value
+    omero_password.visible  = value
+    omero_hostname.visible  = value
+    omero_dataset.visible  = value
+    omero_project_id.visible  = value
+    omero_dataset_name.visible  = value
     
-    
-    
-
 ################################# --------- WIDGETS CLASSES --------- #################################
 class Train(QWidget):
     # your QWidget.__init__ can optionally request the napari viewer instance
@@ -356,22 +399,16 @@ class Train(QWidget):
     def __init__(self, viewer: "napari.viewer.Viewer"):
         super().__init__()
         self.viewer = viewer
-
-        
+   
         self.setLayout(QHBoxLayout())
-        #self.layout().addWidget(autoconfigure.native)
         
         # Connect the autoconfigure callback
         autoconfigure.call_button.changed.connect(lambda: autoconfigure_callback(autoconfigure()))
 
-    
-        #self.layout().addWidget(training.native)
-        #viewer = napari.Viewer()
         viewer.window.add_dock_widget(autoconfigure)
         viewer.window.add_dock_widget(training)
         
-# /home/stagiaire-pt/Willy-wanka/Napari-images/to_pred
-# /home/stagiaire-pt/Willy-wanka/Napari-images/masks
+
 
 class Prediction(QWidget):
     # your QWidget.__init__ can optionally request the napari viewer instance
@@ -381,7 +418,9 @@ class Prediction(QWidget):
         self.viewer = viewer
         
         self.setLayout(QHBoxLayout())
-        
+        predict.Use_Omero.changed.connect(lambda value: on_use_omero_change(predict, value, predict.omero_username, predict.omero_password, predict.omero_hostname, predict.omero_dataset,predict.omero_project_id, predict.omero_dataset_name, predict.directory1))
+
+
         viewer.window.add_dock_widget(predict)
      
     
