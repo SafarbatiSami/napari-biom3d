@@ -55,6 +55,7 @@ try:
     from biom3d.utils import save_python_config # might remove this
     from biom3d.train import train
     from biom3d.pred import pred
+    import biom3d.omero_pred 
     
 except:
     print("couldn't import Biom3d's libs")
@@ -259,9 +260,9 @@ def predict(Use_Omero :bool,
             omero_username: str ="",
             omero_password : str="",
             omero_hostname : str ="",
-            omero_dataset : int = 0,
+            omero_dataset : int = 21194,
             omero_project_id : int = 0,
-            omero_dataset_name : str = ""):
+            omero_dataset_name : str = "ss"):
     
     predict.omero_username.visible = Use_Omero
     predict.omero_password.visible = Use_Omero
@@ -273,16 +274,24 @@ def predict(Use_Omero :bool,
     
     # OMERO ?
     if Use_Omero :
-         # Use OMERO
-         p = biom3d.omero_pred.run(
-                    obj=omero_dataset,
-                    target="/to_pred",
-                    log=str(directory2), 
-                    dir_out=str(directory3),
-                    user=omero_username,
-                    pwd=omero_password,
-                    host=omero_hostname
-                    )  
+        
+        # Use OMERO
+        p = biom3d.omero_pred.run(
+            obj="Dataset:"+omero_dataset,
+            target="to_pred",
+            log=str(directory2), 
+            dir_out=str(directory3),
+            user=omero_username,
+            pwd=omero_password,
+            host=omero_hostname
+            )  
+        # Send predictions to Omero
+        biom3d.omero_uploader.run(username=omero_username,
+                    password=omero_password,
+                    hostname=omero_hostname,
+                    project=omero_project_id,
+                    dataset_name=omero_dataset_name,
+                    path=p)
     else :  
         # Run prediction from local
         p = pred(dir_in=str(directory1),
