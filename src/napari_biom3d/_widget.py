@@ -33,11 +33,10 @@ from typing import TYPE_CHECKING
 from magicgui import magic_factory
 from magicgui.widgets import CheckBox, Container, create_widget
 from qtpy.QtWidgets import QHBoxLayout, QPushButton, QWidget
-from skimage.util import img_as_float
+
 
 if TYPE_CHECKING:
     import napari
-
 
 from pathlib import Path
 from magicgui import magicgui
@@ -46,7 +45,9 @@ from napari import Viewer
 from napari.layers import Image
 import numpy as np
 import pathlib
-"""" biom3D libs"""
+
+
+#--------------------------------------------- Biom3D Libs ----------------------------------------#
 try:
     import biom3d
     from biom3d.preprocess import auto_config_preprocess
@@ -59,104 +60,11 @@ except:
     print("couldn't import Biom3d's libs")
     pass
 
+      
 
 
-"""
-@magicgui( directory={"mode": "d", "label": "Choose a directory"})
-def preprocess(viewer=Viewer,directory=Path("~")):
-  
-    print("The directory name is:", directory)
-    return directory
-"""
+################################# ------------ SOME UTILS ---------- ################################
 
-         
-
-
-
-
-
-
-
-
-
-
-"""
-
-
-# Uses the `autogenerate: true` flag in the plugin manifest
-# to indicate it should be wrapped as a magicgui to autogenerate
-# a widget.
-def threshold_autogenerate_widget(
-    img: "napari.types.ImageData",
-    threshold: "float", 
-) -> "napari.types.LabelsData":
-    return img_as_float(img) > threshold
-
-
-# the magic_factory decorator lets us customize aspects of our widget
-# we specify a widget type for the threshold parameter
-# and use auto_call=True so the function is called whenever
-# the value of a parameter changes
-@magic_factory(
-    threshold={"widget_type": "FloatSlider", "max": 1}, auto_call=True
-)
-def threshold_magic_widget(
-    img_layer: "napari.layers.Image", threshold: "float"
-) -> "napari.types.LabelsData":
-    return img_as_float(img_layer.data) > threshold
-
-
-# if we want even more control over our widget, we can use
-# magicgui `Container`
-class ImageThreshold(Container):
-    def __init__(self, viewer: "napari.viewer.Viewer"):
-        super().__init__()
-        self._viewer = viewer
-        # use create_widget to generate widgets from type annotations
-        self._image_layer_combo = create_widget(
-            label="Image", annotation="napari.layers.Image"
-        )
-        self._threshold_slider = create_widget(
-            label="Threshold", annotation=float, widget_type="FloatSlider"
-        )
-        self._threshold_slider.min = 0
-        self._threshold_slider.max = 1
-        # use magicgui widgets directly
-        self._invert_checkbox = CheckBox(text="Keep pixels below threshold")
-
-        # connect your own callbacks
-        self._threshold_slider.changed.connect(self._threshold_im)
-        self._invert_checkbox.changed.connect(self._threshold_im)
-
-        # append into/extend the container with your widgets
-        self.extend(
-            [
-                self._image_layer_combo,
-                self._threshold_slider,
-                self._invert_checkbox,
-            ]
-        )
-
-    def _threshold_im(self):
-        image_layer = self._image_layer_combo.value
-        if image_layer is None:
-            return
-
-        image = img_as_float(image_layer.data)
-        name = image_layer.name + "_thresholded"
-        threshold = self._threshold_slider.value
-        if self._invert_checkbox.value:
-            thresholded = image < threshold
-        else:
-            thresholded = image > threshold
-        if name in self._viewer.layers:
-            self._viewer.layers[name].data = thresholded
-        else:
-            self._viewer.add_labels(thresholded, name=name)
-
-"""
-
-# SOME UTILS 
 class Dict(dict):
     def __init__(self, *args, **kwargs): super().__init__(*args, **kwargs)
     def __getattr__(self, name): return self[name]
@@ -209,7 +117,7 @@ def nested_dict_change_value(dic, key, value):
 
 
 
-# -------------------------------------- Auto configuration --------------------------------------------
+# -------------------------------------- Auto configuration -------------------------------------------#
 
 
 @magicgui(call_button="Auto-configure",
@@ -239,7 +147,7 @@ def autoconfigure(directory1: pathlib.Path,
     return config_path
       
         
-# ---------------------------------------- Training --------------------------------------------
+# ---------------------------------------- Training --------------------------------------------#
   
 @magicgui(call_button="Train")        
 def training(config_path=None,
@@ -281,7 +189,7 @@ def training(config_path=None,
     cfg.NUM_POOLS = Number_of_pools
     cfg = nested_dict_change_value(cfg, 'num_pools', cfg.NUM_POOLS)
         
-     # save the new config file
+    # Save the new config file
     new_config_path = save_python_config(
     config_dir=local_config_dir,
     base_config=config_path,
@@ -295,14 +203,14 @@ def training(config_path=None,
     NB_EPOCHS=cfg.NB_EPOCHS
     
     )
-   # run the training           
+    # Run the training           
     train(config=new_config_path)     
         
     return new_config_path
 
 
 
-# ------------------------------------ Callback autoconfigure x training -------------------------------------
+# ------------------------------------ Callback autoconfigure x training ------------------------------#
 
 def autoconfigure_callback(config_path):
     # Read the configuration file
@@ -329,7 +237,7 @@ def autoconfigure_callback(config_path):
     training.Number_of_pool_y.value = num_pools[1]
     training.Number_of_pool_z.value = num_pools[2]
     
-# ------------------------------------------ Predicition -----------------------------------------
+# ------------------------------------------ Predicition -----------------------------------------#
 
 
 
@@ -362,26 +270,29 @@ def predict(Use_Omero :bool,
     predict.omero_project_id.visible = Use_Omero
     predict.omero_dataset_name.visible = Use_Omero
     predict.directory3.visible = not Use_Omero
-    # Run prediction
-    p = pred(dir_in=str(directory1),
-        log=str(directory2),
-        dir_out=str(directory3))
-    # Or use OMERO
-   
-      
-    """
-    p=biom3d.omero_pred.run(
-                    obj=obj,
+    
+    # OMERO ?
+    if Use_Omero :
+         # Use OMERO
+         p = biom3d.omero_pred.run(
+                    obj=omero_dataset,
                     target="/to_pred",
                     log=str(directory2), 
                     dir_out=str(directory3),
-                    user=self.omero_connection.username.get(),
-                    pwd=self.omero_connection.password.get(),
-                    host=self.omero_connection.hostname.get()
-                )  
-    """
-        
+                    user=omero_username,
+                    pwd=omero_password,
+                    host=omero_hostname
+                    )  
+    else :  
+        # Run prediction from local
+        p = pred(dir_in=str(directory1),
+            log=str(directory2),
+            dir_out=str(directory3))
+       
     return p
+
+# ------------------------------------ Callback  Prediction  -------------------------------------#
+
 def on_use_omero_change(widget, value,omero_username,omero_password,omero_hostname, omero_dataset,omero_project_id, omero_dataset_name ,directory1):
     directory1.visible = not value
  
@@ -394,8 +305,6 @@ def on_use_omero_change(widget, value,omero_username,omero_password,omero_hostna
     
 ################################# --------- WIDGETS CLASSES --------- #################################
 class Train(QWidget):
-    # your QWidget.__init__ can optionally request the napari viewer instance
-    # use a type annotation of 'napari.viewer.Viewer' for any parameter
     def __init__(self, viewer: "napari.viewer.Viewer"):
         super().__init__()
         self.viewer = viewer
@@ -409,17 +318,14 @@ class Train(QWidget):
         viewer.window.add_dock_widget(training)
         
 
-
 class Prediction(QWidget):
-    # your QWidget.__init__ can optionally request the napari viewer instance
-    # use a type annotation of 'napari.viewer.Viewer' for any parameter
     def __init__(self, viewer: "napari.viewer.Viewer"):
         super().__init__()
         self.viewer = viewer
         
         self.setLayout(QHBoxLayout())
+        
         predict.Use_Omero.changed.connect(lambda value: on_use_omero_change(predict, value, predict.omero_username, predict.omero_password, predict.omero_hostname, predict.omero_dataset,predict.omero_project_id, predict.omero_dataset_name, predict.directory1))
-
 
         viewer.window.add_dock_widget(predict)
      
