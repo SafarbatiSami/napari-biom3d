@@ -56,6 +56,7 @@ try:
     from biom3d.train import train
     from biom3d.pred import pred
     import biom3d.omero_pred 
+    import biom3d.omero_uploader
     
 except:
     print("couldn't import Biom3d's libs")
@@ -153,7 +154,7 @@ def autoconfigure(directory1: pathlib.Path,
 @magicgui(call_button="Train")        
 def training(config_path=None,
              Epochs=10,
-             Batch_size=666,
+             Batch_size=8,
             Patch_size_x=18,
             Patch_size_y=18,
             Patch_size_z=18,
@@ -260,9 +261,9 @@ def predict(Use_Omero :bool,
             omero_username: str ="",
             omero_password : str="",
             omero_hostname : str ="",
-            omero_dataset : int = 21194,
+            omero_dataset : int = 0,
             omero_project_id : int = 0,
-            omero_dataset_name : str = "ss"):
+            omero_dataset_name : str = ""):
     
     predict.omero_username.visible = Use_Omero
     predict.omero_password.visible = Use_Omero
@@ -274,7 +275,7 @@ def predict(Use_Omero :bool,
     
     # OMERO ?
     if Use_Omero :
-        
+       
         # Use OMERO
         p = biom3d.omero_pred.run(
             obj="Dataset:"+omero_dataset,
@@ -285,13 +286,14 @@ def predict(Use_Omero :bool,
             pwd=omero_password,
             host=omero_hostname
             )  
+        
         # Send predictions to Omero
         biom3d.omero_uploader.run(username=omero_username,
                     password=omero_password,
                     hostname=omero_hostname,
-                    project=omero_project_id,
+                    project=int(omero_project_id),
                     dataset_name=omero_dataset_name,
-                    path=p)
+                    path=str(p))
     else :  
         # Run prediction from local
         p = pred(dir_in=str(directory1),
