@@ -48,11 +48,14 @@ import pathlib
 
 
 #--------------------------------------------- Biom3D Libs ----------------------------------------#
+
+
 try:
     import biom3d
     from biom3d.preprocess import auto_config_preprocess
     from biom3d.utils import adaptive_load_config # might remove this
     from biom3d.utils import save_python_config # might remove this
+    from biom3d.utils import nested_dict_change_value
     from biom3d.train import train
     from biom3d.pred import pred
     import biom3d.omero_pred 
@@ -67,51 +70,7 @@ except:
 
 ################################# ------------ SOME UTILS ---------- ################################
 
-class Dict(dict):
-    def __init__(self, *args, **kwargs): super().__init__(*args, **kwargs)
-    def __getattr__(self, name): return self[name]
-    def __setattr__(self, name, value): self[name] = value
-    def __delattr__(self, name): del self[name]
 
-def Dict_to_dict(cfg):
-    """
-    transform a Dict into a dict
-    """
-    ty = type(cfg)
-    cfg = dict(cfg)
-    for k,i in cfg.items():
-        if type(i)==ty:
-            cfg[k] = Dict_to_dict(cfg[k])
-    return cfg
-
-def nested_dict_pairs_iterator(dic):
-    ''' This function accepts a nested dictionary as argument
-        and iterate over all values of nested dictionaries
-        stolen from: https://thispointer.com/python-how-to-iterate-over-nested-dictionary-dict-of-dicts/ 
-    '''
-    # Iterate over all key-value pairs of dict argument
-    for key, value in dic.items():
-        # Check if value is of dict type
-        if isinstance(value, dict) or isinstance(value, Dict):
-            # If value is dict then iterate over all its values
-            for pair in  nested_dict_pairs_iterator(value):
-                yield [key, *pair]
-        else:
-            # If value is not dict type then yield the value
-            yield [key, value]
-
-def nested_dict_change_value(dic, key, value):
-    """
-    Change all value with a given key from a nested dictionary.
-    """
-    # Loop through all key-value pairs of a nested dictionary and change the value 
-    for pairs in nested_dict_pairs_iterator(dic):
-        if key in pairs:
-            save = dic[pairs[0]]; i=1
-            while i < len(pairs) and pairs[i]!=key:
-                save = save[pairs[i]]; i+=1
-            save[key] = value
-    return dic
 # END OF UTILS
 
 
@@ -124,28 +83,37 @@ def nested_dict_change_value(dic, key, value):
 
 @magicgui(call_button="Auto-configure",
             directory1={"mode": "d", "label": "Select the folder containing the images :"},
-            directory2={"mode": "d", "label": "Select the folder containing the masks :"})
-def autoconfigure(directory1: pathlib.Path,
+            directory2={"mode": "d", "label": "Select the folder containing the masks :"},
+            directory3={"mode": "r", "label": "Select the Config file :", "visible": False,},)
+def autoconfigure(Use_Configuration_file :bool,
+                  directory1: pathlib.Path,
                     directory2: pathlib.Path,
+                    directory3:pathlib.Path,
                     Builder_name="Name for your Builder",
                     
                     Number_classes=1,
                     
                     ):
+    autoconfigure.directory3.visible = Use_Configuration_file
+
+   
     
     local_config_dir = "configs"
     local_logs_dir = "logs"
     
-    config_path=auto_config_preprocess(img_dir=str(directory1),
-        msk_dir=str(directory2),
-        desc=Builder_name,
-        num_classes=Number_classes,
-        remove_bg=False, use_tif=False,
-        config_dir=local_config_dir,
-        logs_dir=local_logs_dir,
-        base_config=None,
-            
-        )
+    if Use_Configuration_file : 
+        config_path = str(directory3)
+    else :
+        config_path=auto_config_preprocess(img_dir=str(directory1),
+            msk_dir=str(directory2),
+            desc=Builder_name,
+            num_classes=Number_classes,
+            remove_bg=False, use_tif=False,
+            config_dir=local_config_dir,
+            logs_dir=local_logs_dir,
+            base_config=None,               
+            )
+        
     return config_path
       
         
@@ -238,7 +206,12 @@ def autoconfigure_callback(config_path):
     training.Number_of_pool_x.value = num_pools[0]
     training.Number_of_pool_y.value = num_pools[1]
     training.Number_of_pool_z.value = num_pools[2]
-    
+
+def on_use_load_config( widget, value, directory1, directory2, directory3):
+    directory1.visible = not value
+    directory2.visible = not value
+    directory3.visible =  value
+ 
 # ------------------------------------------ Predicition -----------------------------------------#
 
 
@@ -321,7 +294,7 @@ class Train(QWidget):
         self.viewer = viewer
    
         self.setLayout(QHBoxLayout())
-        
+        autoconfigure.Use_Configuration_file.changed.connect(lambda value: on_use_load_config(autoconfigure, value,autoconfigure.directory1, autoconfigure.directory2, autoconfigure.directory3 ))
         # Connect the autoconfigure callback
         autoconfigure.call_button.changed.connect(lambda: autoconfigure_callback(autoconfigure()))
 
