@@ -10,6 +10,13 @@ write_to = "src/napari_biom3d/_version.py"
 line-length = 79
 target-version = ['py38', 'py39', 'py310']
 
+[project]
+name = "napari-biom3d"
+version = "0.1.0"
+dynamic = ["description", "readme", "requires-python", "license", "authors", "classifiers", "dependencies", "urls"]
+
+
+
 [project.optional-dependencies]
 omero= [
     "paramiko",
