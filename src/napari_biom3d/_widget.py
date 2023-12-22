@@ -47,7 +47,7 @@ import numpy as np
 import pathlib
 
 
-#--------------------------------------------- Biom3D Libs ----------------------------------------#
+#--------------------------------------------- biom3d Libs ----------------------------------------#
 
 
 try:
@@ -57,23 +57,18 @@ try:
     from biom3d.utils import save_python_config # might remove this
     from biom3d.utils import nested_dict_change_value
     from biom3d.train import train
-    from biom3d.pred import pred
-    import biom3d.omero_pred 
-    import biom3d.omero_uploader
-    
+    from biom3d.pred import pred  
 except:
-    print("couldn't import Biom3d's libs")
+    print("couldn't import biom3d's libs")
     pass
 
-      
 
-
-################################# ------------ SOME UTILS ---------- ################################
-
-
-# END OF UTILS
-
-
+try:
+    import biom3d.omero_pred 
+    import biom3d.omero_uploader
+except:
+    print("couldn't import omero related modules")
+    pass
 
 
 

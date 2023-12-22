@@ -1,20 +1,20 @@
-name: napari-Biom3d
-display_name: Biom3d
+name: napari-biom3d
+display_name: biom3d
 # use 'hidden' to remove plugin from napari hub search results
 visibility: public
 # see https://napari.org/stable/plugins/manifest.html for valid categories
 categories: ["Annotation", "Segmentation", "Acquisition"]
 contributions:
   commands:
-    - id: napari-Biom3d._widget.Train
+    - id: napari-biom3d._widget.Train
       python_name: napari_biom3d._widget:Train
       title: Train
-    - id: napari-Biom3d._widget.Prediction
+    - id: napari-biom3d._widget.Prediction
       python_name: napari_biom3d._widget:Prediction
       title: Prediction
 
   widgets:
-    - command: napari-Biom3d._widget.Train
+    - command: napari-biom3d._widget.Train
       display_name: Auto-configure & Train
-    - command: napari-Biom3d._widget.Prediction
+    - command: napari-biom3d._widget.Prediction
       display_name: Prediction
