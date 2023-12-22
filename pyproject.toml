@@ -14,7 +14,6 @@ target-version = ['py38', 'py39', 'py310']
 omero= [
     "paramiko",
     "omero-py",
-    "ezomero",
     "netcat"
 ]
 
