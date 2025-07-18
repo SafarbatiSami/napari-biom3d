@@ -38,6 +38,7 @@ from qtpy.QtWidgets import QHBoxLayout, QPushButton, QWidget
 if TYPE_CHECKING:
     import napari
 
+from sys import platform
 from pathlib import Path
 from magicgui import magicgui
 import napari
@@ -153,7 +154,11 @@ def training(config_path=None,
     Number_of_pools = [int(Number_of_pool_x), int(Number_of_pool_y), int(Number_of_pool_z)]
     cfg.NUM_POOLS = Number_of_pools
     cfg = nested_dict_change_value(cfg, 'num_pools', cfg.NUM_POOLS)
-        
+    if platform=='win32':
+            if not cfg.IMG_DIR == None : cfg.IMG_DIR = cfg.IMG_DIR.replace('\\','\\\\')
+            if not cfg.MSK_DIR == None : cfg.MSK_DIR = cfg.MSK_DIR.replace('\\','\\\\')
+            if not cfg.FG_DIR == None : cfg.FG_DIR = cfg.FG_DIR.replace('\\','\\\\')
+            if not cfg.CSV_DIR  == None : cfg.CSV_DIR = cfg.CSV_DIR.replace('\\','\\\\')    
     # Save the new config file
     new_config_path = save_python_config(
     config_dir=local_config_dir,
