@@ -46,7 +46,7 @@ from napari import Viewer
 from napari.layers import Image
 import numpy as np
 import pathlib
-
+import os 
 
 #--------------------------------------------- biom3d Libs ----------------------------------------#
 
@@ -59,6 +59,7 @@ try:
     from biom3d.utils import nested_dict_change_value
     from biom3d.train import train
     from biom3d.pred import pred  
+    
 except:
     print("couldn't import biom3d's libs")
     pass
@@ -66,7 +67,8 @@ except:
 
 try:
     import biom3d.omero_pred 
-    import biom3d.omero_uploader
+    #import biom3d.omero_uploader
+    #import biom3d.omero_downloader 
 except:
     print("couldn't import omero related modules")
     pass
@@ -78,15 +80,25 @@ except:
 
 
 @magicgui(call_button="Auto-configure",
+            omero_username={"widget_type": "LineEdit", "visible": False, "label": "Omero Username :"},
+            omero_password={"widget_type": "Password", "visible": False, "label": "Password :"},
+            omero_hostname={"widget_type": "LineEdit", "visible": False, "label": "Hostname :"},
+            raw_omero_dataset={"widget_type": "LineEdit", "visible": False, "label": "Raw Dataset ID :"},
+            mask_omero_dataset={"widget_type": "LineEdit", "visible": False, "label": "Mask Dataset ID :"},
             directory1={"mode": "d", "label": "Select the folder containing the images :"},
             directory2={"mode": "d", "label": "Select the folder containing the masks :"},
             directory3={"mode": "r", "label": "Select the Config file :", "visible": False,},)
 def autoconfigure(Use_Configuration_file :bool,
+                  Use_Omero:bool,
                   directory1: pathlib.Path,
                     directory2: pathlib.Path,
                     directory3:pathlib.Path,
+                    omero_username: str ="",
+                    omero_password : str="",
+                    omero_hostname : str ="",
+                    raw_omero_dataset : int = 0,
+                    mask_omero_dataset : int = 0,
                     Builder_name="Name for your Builder",
-                    
                     Number_classes=1,
                     
                     ):
@@ -96,9 +108,18 @@ def autoconfigure(Use_Configuration_file :bool,
     
     local_config_dir = "configs"
     local_logs_dir = "logs"
-    
+    if Use_Omero :    
+                raw_dataset = "Dataset:"+raw_omero_dataset
+                mask_dataset = "Dataset:"+mask_omero_dataset
+                print("Using OMERO ! ")
+                datasets, img_dir = biom3d.omero_pred.omero_downloader.download_object(hostname=omero_hostname, username=omero_username, password=omero_password, target_dir = "data/to_train/", obj=raw_dataset )
+                datasets_mask, msk_dir = biom3d.omero_pred.omero_downloader.download_object(hostname=omero_hostname, username=omero_username, password=omero_password, target_dir = "data/to_train/", obj=mask_dataset )
+                directory1 = os.path.join(img_dir, datasets[0].name)
+                directory2 = os.path.join(msk_dir, datasets_mask[0].name)
+
     if Use_Configuration_file : 
         config_path = str(directory3)
+
     else :
         config_path=auto_config_preprocess(img_dir=str(directory1),
             msk_dir=str(directory2),
@@ -207,11 +228,29 @@ def autoconfigure_callback(config_path):
     training.Number_of_pool_y.value = num_pools[1]
     training.Number_of_pool_z.value = num_pools[2]
 
-def on_use_load_config( widget, value, directory1, directory2, directory3):
+def on_use_load_config( widget, value, omero_username,omero_password,omero_hostname, raw_omero_dataset ,mask_omero_dataset, directory1, directory2, directory3):
     directory1.visible = not value
     directory2.visible = not value
     directory3.visible =  value
- 
+
+    omero_username.visible = not value
+    omero_password.visible  = not value
+    omero_hostname.visible  = not value
+    raw_omero_dataset.visible  = not value
+    mask_omero_dataset.visible  = not value
+ # ------------------------------------ Callback  Autoconfig  -------------------------------------#
+
+def on_use_omero_change_autoconfig(widget, value,omero_username,omero_password,omero_hostname, raw_omero_dataset ,mask_omero_dataset, directory1,directory2,directory3):
+    directory1.visible = not value
+    directory2.visible = not value
+    directory3.visible = not value
+
+    omero_username.visible = value
+    omero_password.visible  = value
+    omero_hostname.visible  = value
+    raw_omero_dataset.visible  = value
+    mask_omero_dataset.visible  = value
+
 # ------------------------------------------ Predicition -----------------------------------------#
 
 
@@ -261,7 +300,7 @@ def predict(Use_Omero :bool,
             )  
         
         # Send predictions to Omero
-        biom3d.omero_uploader.run(username=omero_username,
+        biom3d.omero_pred.omero_uploader.run(username=omero_username,
                     password=omero_password,
                     hostname=omero_hostname,
                     project=int(omero_project_id),
@@ -294,7 +333,10 @@ class Train(QWidget):
         self.viewer = viewer
    
         self.setLayout(QHBoxLayout())
-        autoconfigure.Use_Configuration_file.changed.connect(lambda value: on_use_load_config(autoconfigure, value,autoconfigure.directory1, autoconfigure.directory2, autoconfigure.directory3 ))
+        autoconfigure.Use_Configuration_file.changed.connect(lambda value: on_use_load_config(autoconfigure, value,autoconfigure.omero_username, autoconfigure.omero_password, autoconfigure.omero_hostname,autoconfigure.raw_omero_dataset, autoconfigure.mask_omero_dataset, autoconfigure.directory1, autoconfigure.directory2, autoconfigure.directory3 ))
+
+        autoconfigure.Use_Omero.changed.connect(lambda value: on_use_omero_change_autoconfig(autoconfigure, value, autoconfigure.omero_username, autoconfigure.omero_password, autoconfigure.omero_hostname,autoconfigure.raw_omero_dataset, autoconfigure.mask_omero_dataset, autoconfigure.directory1,autoconfigure.directory2,autoconfigure.directory3))
+
         # Connect the autoconfigure callback
         autoconfigure.call_button.changed.connect(lambda: autoconfigure_callback(autoconfigure()))
 

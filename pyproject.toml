@@ -13,7 +13,18 @@ target-version = ['py38', 'py39', 'py310']
 [project]
 name = "napari-biom3d"
 version = "0.1.0"
-dynamic = ["description", "readme", "requires-python", "license", "authors", "classifiers", "dependencies", "urls"]
+dependencies = [
+  "numpy",
+  "magicgui",
+  "qtpy",
+  "scikit-image",
+  "magicgui",
+  "biom3d>=0.0.46",
+  "paramiko",
+  "omero-py",
+  "netcat"
+]
+dynamic = ["description", "readme", "requires-python", "license", "authors", "classifiers", "urls"]
 
 
 
